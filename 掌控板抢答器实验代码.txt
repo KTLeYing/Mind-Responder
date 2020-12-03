@@ -1,0 +1,199 @@
+出题方代码：
+/*!
+ * MindPlus
+ * mpython
+ *
+ */
+#include <MPython.h>
+#include <DFRobot_Iot.h>
+#include <mPython_tinywebdb.h>
+
+// 动态变量
+String         mind_s_QiangDaXinXi, mind_s_WenTi;
+volatile float mind_n_KaiShiJiShi, mind_n_XiTongJiShi, mind_n_JingDu, mind_n_Miao,
+               mind_n_Fen, mind_n_YaoYiYao, mind_n_XianZhi, mind_n_JiShiZhuangTai;
+// 函数声明
+void DF_XianShiShiJian();
+void obloqMqttEventT2(String& message);
+// 静态常量
+const String topics[5] = {"c3PBcmFMR","hZYvpiFGR","MzFOpiFMR","",""};
+const MsgHandleCb msgHandles[5] = {NULL,NULL,obloqMqttEventT2,NULL,NULL};
+// 创建对象
+DFRobot_Iot       myIot;
+mPython_TinyWebDB mydb;
+
+
+// 主程序开始
+void setup() {
+	mPython.begin();
+	dfrobotRandomSeed();
+	myIot.setMqttCallback(msgHandles);
+	myIot.wifiConnect("MEIZU 16th", "66666666");
+	while (!myIot.wifiStatus()) {yield();}
+	display.setCursorLine(1);
+	display.printLine("Wi-Fi连接成功");
+	myIot.init("iot.dfrobot.com.cn","Z0h15mFMg","","WA2JcmKMgz",topics,1883);
+	myIot.connect();
+	while (!myIot.connected()) {yield();}
+	display.setCursorLine(1);
+	display.printLine("MQTT连接成功");
+	mydb.setServerParameter("http://tinywebdb.appinventor.space/api", "ktmzl","9c06bd73");
+	mind_n_YaoYiYao = 0;
+	mind_n_XianZhi = 0;
+	mind_s_QiangDaXinXi = mydb.getTag("0");
+	mind_s_WenTi = mydb.getTag((String((random(3, 8+1)))));
+	display.setCursor(84, 13);
+	display.print("00");
+	display.setCursor(36, 13);
+	display.print("：");
+	display.setCursor(52, 13);
+	display.print("00");
+	display.setCursor(68, 13);
+	display.print(". ");
+	display.setCursor(20, 13);
+	display.print("00");
+	mind_n_JiShiZhuangTai = 1;
+	mind_n_XianZhi = 0;
+}
+void loop() {
+	if ((buttonA.isPressed())) {
+		display.setCursorLine(3);
+		display.printLine(mind_s_WenTi);
+		mind_n_YaoYiYao = 1;
+		mind_n_KaiShiJiShi = millis();
+		display.setCursor(36, 13);
+		display.print("：");
+		display.setCursor(68, 13);
+		display.print(". ");
+		while (!(mind_n_JiShiZhuangTai==0)) {
+			if ((buttonB.isPressed())) {
+				myIot.publish(topic_0, mind_s_QiangDaXinXi);
+				myIot.publish(topic_1, mind_s_WenTi);
+			}
+			DF_XianShiShiJian();
+			yield();
+		}
+	}
+}
+
+
+// 自定义函数
+void DF_XianShiShiJian() {
+	display.setCursor(84, 13);
+	display.print("  ");
+	display.setCursor(52, 13);
+	display.print("  ");
+	display.setCursor(20, 13);
+	display.print("  ");
+	mind_n_XiTongJiShi = (millis() - mind_n_KaiShiJiShi);
+	mind_n_JingDu = (((int)(mind_n_XiTongJiShi / 10)) % ((int)100));
+	if ((mind_n_JingDu<10)) {
+		display.setCursor(84, 13);
+		display.print((String("0") + String((((int)mind_n_JingDu) % ((int)100)))));
+	}
+	else {
+		display.setCursor(84, 13);
+		display.print(mind_n_JingDu);
+	}
+	mind_n_XiTongJiShi = ((millis() - mind_n_KaiShiJiShi) / 1000);
+	mind_n_Miao = (((int)mind_n_XiTongJiShi) % ((int)60));
+	if ((mind_n_Miao<10)) {
+		display.setCursor(52, 13);
+		display.print((String("0") + String((((int)mind_n_Miao) % ((int)100)))));
+	}
+	else {
+		display.setCursor(52, 13);
+		display.print(mind_n_Miao);
+	}
+	mind_n_Fen = (((int)(mind_n_XiTongJiShi / 60)) % ((int)60));
+	if ((mind_n_Fen<10)) {
+		display.setCursor(20, 13);
+		display.print((String("0") + String((((int)mind_n_Fen) % ((int)100)))));
+	}
+	else {
+		display.setCursor(20, 13);
+		display.print(mind_n_Fen);
+	}
+}
+
+// 事件回调函数
+void obloqMqttEventT2(String& message) {
+	if ((mind_n_XianZhi==0)) {
+		mind_n_JiShiZhuangTai = 0;
+		delay(2000);
+		display.setCursorLine(4);
+		display.printLine((String(message) + String("抢答成功！")));
+		mind_n_XianZhi = 1;
+	}
+}
+
+
+
+
+
+抢答方代码：
+/*!
+ * MindPlus
+ * mpython
+ *
+ */
+#include <MPython.h>
+#include <DFRobot_Iot.h>
+#include <mPython_tinywebdb.h>
+
+// 动态变量
+volatile float mind_n_KeYiQiangDa;
+// 函数声明
+void obloqMqttEventT0(String& message);
+void obloqMqttEventT1(String& message);
+void onButtonBPressed();
+// 静态常量
+const String topics[5] = {"c3PBcmFMR","hZYvpiFGR","MzFOpiFMR","",""};
+const MsgHandleCb msgHandles[5] = {obloqMqttEventT0,obloqMqttEventT1,NULL,NULL,NULL};
+// 创建对象
+DFRobot_Iot       myIot;
+mPython_TinyWebDB mydb;
+
+
+// 主程序开始
+void setup() {
+	mPython.begin();
+	myIot.setMqttCallback(msgHandles);
+	buttonB.setPressedCallback(onButtonBPressed);
+	myIot.wifiConnect("MEIZU 16th", "66666666");
+	while (!myIot.wifiStatus()) {yield();}
+	display.setCursorLine(1);
+	display.printLine("WIFI连接成功");
+	myIot.init("iot.dfrobot.com.cn","Z0h15mFMg","","WA2JcmKMgz",topics,1883);
+	myIot.connect();
+	while (!myIot.connected()) {yield();}
+	display.setCursorLine(2);
+	display.printLine("MQTT连接成功");
+	mydb.setServerParameter("http://tinywebdb.appinventor.space/api", "ktmzl","ktmzl");
+}
+void loop() {
+
+}
+
+// 事件回调函数
+void obloqMqttEventT0(String& message) {
+	display.fillScreen(0);
+	display.setCursorLine(1);
+	display.printLine(message);
+	if ((message==String("你可以开始抢答问题了"))) {
+		display.setCursorLine(2);
+		display.printLine("抢答开始！");
+		mind_n_KeYiQiangDa = 1;
+	}
+}
+void obloqMqttEventT1(String& message) {
+	display.setCursorLine(3);
+	display.printLine(message);
+}
+void onButtonBPressed() {
+	if ((1==mind_n_KeYiQiangDa)) {
+		myIot.publish(topic_2, "马振乐");
+	}
+}
+
+
